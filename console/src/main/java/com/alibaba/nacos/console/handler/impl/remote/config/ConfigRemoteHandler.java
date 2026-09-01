@@ -25,6 +25,7 @@ import com.alibaba.nacos.api.config.model.SameConfigPolicy;
 import com.alibaba.nacos.api.exception.NacosException;
 import com.alibaba.nacos.api.model.Page;
 import com.alibaba.nacos.api.model.v2.Result;
+import com.alibaba.nacos.common.utils.Pair;
 import com.alibaba.nacos.common.utils.StringUtils;
 import com.alibaba.nacos.config.server.constant.Constants;
 import com.alibaba.nacos.config.server.constant.ParametersField;
@@ -36,6 +37,7 @@ import com.alibaba.nacos.console.handler.impl.ConditionFunctionEnabled;
 import com.alibaba.nacos.console.handler.impl.remote.EnabledRemoteHandler;
 import com.alibaba.nacos.console.handler.impl.remote.NacosMaintainerClientHolder;
 import com.alibaba.nacos.maintainer.client.config.ConfigMaintainerService;
+import com.alibaba.nacos.plugin.encryption.handler.EncryptionHandler;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -81,7 +83,15 @@ public class ConfigRemoteHandler implements ConfigHandler {
     public ConfigDetailInfo getConfigDetail(String dataId, String group, String namespaceId)
         throws NacosException {
         try {
-            return clientHolder.getConfigMaintainerService().getConfig(dataId, group, namespaceId);
+            ConfigDetailInfo result =
+                clientHolder.getConfigMaintainerService().getConfig(dataId, group, namespaceId);
+            if (null != result) {
+                String encryptedDataKey = result.getEncryptedDataKey();
+                Pair<String, String> pair = EncryptionHandler.decryptHandler(dataId,
+                    encryptedDataKey, result.getContent());
+                result.setContent(pair.getSecond());
+            }
+            return result;
         } catch (NacosException e) {
             if (NacosException.NOT_FOUND == e.getErrCode()) {
                 return null;

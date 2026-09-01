@@ -160,6 +160,15 @@ public class ConfigInnerHandler implements ConfigHandler {
         if (null == configAllInfo) {
             return null;
         }
+        String encryptedDataKey = configAllInfo.getEncryptedDataKey();
+        LOGGER.info("[getConfigDetail] dataId={}, encryptedDataKey={}, contentLen={}",
+            dataId, encryptedDataKey != null ? encryptedDataKey.substring(0, Math.min(20, encryptedDataKey.length())) : "null",
+            configAllInfo.getContent().length());
+        Pair<String, String> pair = EncryptionHandler.decryptHandler(dataId, encryptedDataKey,
+            configAllInfo.getContent());
+        LOGGER.info("[getConfigDetail] after decrypt, decryptedContent startsWith={}",
+            pair.getSecond() != null ? pair.getSecond().substring(0, Math.min(20, pair.getSecond().length())) : "null");
+        configAllInfo.setContent(pair.getSecond());
         return ResponseUtil.transferToConfigDetailInfo(configAllInfo);
     }
     
